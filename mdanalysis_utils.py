@@ -1,4 +1,5 @@
-"""Pure helper functions for protein MD trajectory analysis.
+"""
+Pure helper functions for protein MD trajectory analysis.
 
 No hidden global state. All functions are deterministic: same inputs -> same outputs.
 Designed to be imported from a Jupyter notebook with zero side effects.
@@ -25,7 +26,7 @@ _COLOUR_CYCLE = [
 ]
 
 
-def _publication_style():
+def _publication_style() -> None:
     """Apply tight, publication-ready Matplotlib defaults."""
     plt.rcParams.update({
         "figure.dpi": 150,
@@ -49,7 +50,8 @@ def _ensure_dir(path: str) -> None:
 
 
 def _resolve_time_axis(traj: md.Trajectory, timestep_ps: Optional[float] = None) -> np.ndarray:
-    """Return a time axis in nanoseconds for ``traj``.
+    """
+    Return a time axis in nanoseconds for ``traj``.
 
     Args:
         traj: Input trajectory.
@@ -76,7 +78,8 @@ def plot_energy(
     outpath: str,
     xlabel: str = "Time (ns)",
 ) -> None:
-    """Create a single-panel, publication-ready line plot and save it.
+    """
+    Create a single-panel, publication-ready line plot and save it.
 
     Args:
         time_ns: 1-D array of time values in nanoseconds.
@@ -110,7 +113,8 @@ def align_trajectory(
     reference_frame: int = 0,
     atom_selection: str = "protein",
 ) -> md.Trajectory:
-    """Center and align a trajectory to a reference frame.
+    """
+    Center and align a trajectory to a reference frame.
 
     The protein (or the atoms matching ``atom_selection``) is used for the
     alignment superposition. The returned trajectory is a **new** object; the
@@ -139,16 +143,14 @@ def align_trajectory(
     atom_indices = aligned.topology.select(atom_selection)
     if len(atom_indices) == 0:
         available = sorted({r.name for r in aligned.topology.residues})
-        raise ValueError(
-            f"Selection '{atom_selection}' returned no atoms. "
-            f"Available residues: {available}"
-        )
+        raise ValueError(f"Selection '{atom_selection}' returned no atoms. Available residues: {available}")
     aligned.xyz[:, atom_indices, :] -= aligned.xyz[:, atom_indices, :].mean(axis=(0, 1), keepdims=True)
     return aligned
 
 
 def image_molecules(traj: md.Trajectory) -> md.Trajectory:
-    """Attempt to image molecules so they are whole across periodic boundaries.
+    """
+    Attempt to image molecules so they are whole across periodic boundaries.
 
     Falls back to returning the original trajectory if mdtraj raises (e.g. for
     non-orthogonal boxes without an anchor molecule).
@@ -171,7 +173,8 @@ def save_aligned_files(
     structure_path: str,
     trajectory_path: str,
 ) -> None:
-    """Save aligned topology and trajectory for Molstar or any other viewer.
+    """
+    Save aligned topology and trajectory for Molstar or any other viewer.
 
     Args:
         traj: Aligned trajectory.
@@ -195,7 +198,8 @@ def _resolve_atom_indices(
     traj: md.Trajectory,
     selections: List[str],
 ) -> np.ndarray:
-    """Resolve a list of MDTraj DSL selections to atom indices.
+    """
+    Resolve a list of MDTraj DSL selections to atom indices.
 
     Args:
         traj: Input trajectory.
@@ -211,10 +215,7 @@ def _resolve_atom_indices(
     for sel, idx in zip(selections, indices):
         if len(idx) == 0:
             available = sorted({r.name for r in traj.topology.residues})
-            raise ValueError(
-                f"Selection '{sel}' returned no atoms. "
-                f"Available residues: {available}"
-            )
+            raise ValueError(f"Selection '{sel}' returned no atoms. Available residues: {available}")
     return indices
 
 
@@ -223,7 +224,8 @@ def measure_distance(
     selection_pairs: List[Tuple[str, str]],
     timestep_ps: Optional[float] = None,
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-    """Measure centre-of-geometry distances between atom selections.
+    """
+    Measure centre-of-geometry distances between atom selections.
 
     Each selection is reduced to its geometric centre at every frame, then the
     Euclidean distance between the two centres is returned.
@@ -254,8 +256,7 @@ def measure_distance(
         if len(idx_a) == 0 or len(idx_b) == 0:
             available = sorted({r.name for r in traj.topology.residues})
             raise ValueError(
-                f"Distance pair ({sel_a!r}, {sel_b!r}) contains an empty "
-                f"selection. Available residues: {available}"
+                f"Distance pair ({sel_a!r}, {sel_b!r}) contains an empty selection. Available residues: {available}"
             )
         labels.append(f"{sel_a} — {sel_b}")
         # Centre-of-geometry for each group at every frame.
@@ -277,12 +278,13 @@ def measure_angle(
     selection_triples: List[Tuple[str, str, str]],
     timestep_ps: Optional[float] = None,
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-    """Measure angles (in degrees) between three atom selections.
+    """
+    Measure angles (in degrees) between three atom selections.
 
     Args:
         traj: Input trajectory.
         selection_triples: Each tuple defines ``(sel_a, sel_b, sel_c)`` for
-            the angle ``a–b–c``.
+            the angle ``a-b-c``.
         timestep_ps: Timestep in ps. Defaults to ``traj.timestep``.
 
     Returns:
@@ -318,12 +320,13 @@ def measure_dihedral(
     selection_quads: List[Tuple[str, str, str, str]],
     timestep_ps: Optional[float] = None,
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-    """Measure dihedral angles (in degrees) between four atom selections.
+    """
+    Measure dihedral angles (in degrees) between four atom selections.
 
     Args:
         traj: Input trajectory.
         selection_quads: Each tuple defines ``(sel_a, sel_b, sel_c, sel_d)``
-            for the dihedral ``a–b–c–d``.
+            for the dihedral ``a-b-c-d``.
         timestep_ps: Timestep in ps. Defaults to ``traj.timestep``.
 
     Returns:
@@ -364,7 +367,8 @@ def dssp_timeline(
     traj: md.Trajectory,
     outpath: Optional[str] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Run DSSP secondary-structure assignment and optionally plot a heat-map.
+    """
+    Run DSSP secondary-structure assignment and optionally plot a heat-map.
 
     Args:
         traj: Input trajectory. Must contain protein residues.
@@ -427,7 +431,8 @@ def ramachandran(
     residue_indices: Optional[List[int]] = None,
     outpath: Optional[str] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Extract phi / psi dihedrals and optionally plot a Ramachandran map.
+    """
+    Extract phi / psi dihedrals and optionally plot a Ramachandran map.
 
     Args:
         traj: Input trajectory.
@@ -464,9 +469,7 @@ def ramachandran(
         _ensure_dir(outpath)
 
         fig, ax = plt.subplots(figsize=(5.5, 5))
-        hist, xedges, yedges = np.histogram2d(
-            phi, psi, bins=180, range=[[-180, 180], [-180, 180]]
-        )
+        hist, xedges, yedges = np.histogram2d(phi, psi, bins=180, range=[[-180, 180], [-180, 180]])
         # Omit the extreme singleton bins that dominate the colour scale.
         vmax = np.percentile(hist, 99)
         im = ax.imshow(
