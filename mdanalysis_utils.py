@@ -1,7 +1,6 @@
-"""
-mdanalysis_utils.py — Pure helper functions for protein MD trajectory analysis.
+"""Pure helper functions for protein MD trajectory analysis.
 
-No hidden global state. All functions are deterministic: same inputs → same outputs.
+No hidden global state. All functions are deterministic: same inputs -> same outputs.
 Designed to be imported from a Jupyter notebook with zero side effects.
 """
 
@@ -12,7 +11,6 @@ import mdtraj as md
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import to_rgba
-
 
 # Colour-blind-safe palette for publication-ready figures.
 _COLOUR_CYCLE = [
@@ -51,17 +49,24 @@ def _ensure_dir(path: str) -> None:
 
 
 def _resolve_time_axis(traj: md.Trajectory, timestep_ps: Optional[float] = None) -> np.ndarray:
-    """Return a time axis in nanoseconds for *traj*.
+    """Return a time axis in nanoseconds for ``traj``.
 
-    If *timestep_ps* is not supplied, fall back to ``traj.timestep`` (ps) converted to ns.
+    Args:
+        traj: Input trajectory.
+        timestep_ps: Timestep in ps. If not supplied, falls back to
+            ``traj.timestep``.
+
+    Returns:
+        A 1-D array of time values in nanoseconds.
     """
     dt = timestep_ps if timestep_ps is not None else traj.timestep
-    return np.arange(traj.n_frames) * dt / 1000.0  # ps → ns
+    return np.arange(traj.n_frames) * dt / 1000.0  # ps -> ns
 
 
 # --------------------------------------------------------------------------- #
 # Plotting helpers
 # --------------------------------------------------------------------------- #
+
 
 def plot_energy(
     time_ns: np.ndarray,
@@ -73,20 +78,14 @@ def plot_energy(
 ) -> None:
     """Create a single-panel, publication-ready line plot and save it.
 
-    Parameters
-    ----------
-    time_ns : np.ndarray
-        1-D array of time values in nanoseconds.
-    values : np.ndarray
-        1-D array of the quantity to plot.
-    title : str
-        Figure title.
-    ylabel : str
-        Y-axis label.
-    outpath : str
-        Where to write the figure (e.g. ``analysis_output/temperature.png``).
-    xlabel : str, optional
-        X-axis label. Defaults to ``"Time (ns)"``.
+    Args:
+        time_ns: 1-D array of time values in nanoseconds.
+        values: 1-D array of the quantity to plot.
+        title: Figure title.
+        ylabel: Y-axis label.
+        outpath: Where to write the figure, e.g.
+            ``analysis_output/temperature.png``.
+        xlabel: X-axis label. Defaults to ``"Time (ns)"``.
     """
     _publication_style()
     _ensure_dir(outpath)
@@ -105,6 +104,7 @@ def plot_energy(
 # Trajectory preprocessing
 # --------------------------------------------------------------------------- #
 
+
 def align_trajectory(
     traj: md.Trajectory,
     reference_frame: int = 0,
@@ -112,24 +112,21 @@ def align_trajectory(
 ) -> md.Trajectory:
     """Center and align a trajectory to a reference frame.
 
-    The protein (or the atoms matching *atom_selection*) is used for the
-    alignment superposition.  The returned trajectory is a **new** object;
-    the input is never modified in place.
+    The protein (or the atoms matching ``atom_selection``) is used for the
+    alignment superposition. The returned trajectory is a **new** object; the
+    input is never modified in place.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.
-    reference_frame : int, optional
-        Frame index to align against.  Default is 0.
-    atom_selection : str, optional
-        MDTraj DSL selection string used for the superposition.  Default
-        is ``"protein"``.
+    Args:
+        traj: Input trajectory.
+        reference_frame: Frame index to align against.
+        atom_selection: MDTraj DSL selection string used for the superposition.
+            Defaults to ``"protein"``.
 
-    Returns
-    -------
-    md.Trajectory
+    Returns:
         Aligned trajectory.
+
+    Raises:
+        ValueError: If ``atom_selection`` returns no atoms.
     """
     # mdtraj.superpose modifies in place, so work on a copy.
     aligned = traj.slice(range(traj.n_frames))
@@ -141,9 +138,10 @@ def align_trajectory(
     # Center the aligned selection at the origin for nicer visualisation.
     atom_indices = aligned.topology.select(atom_selection)
     if len(atom_indices) == 0:
+        available = sorted({r.name for r in aligned.topology.residues})
         raise ValueError(
             f"Selection '{atom_selection}' returned no atoms. "
-            f"Available residues: {sorted({r.name for r in aligned.topology.residues})}"
+            f"Available residues: {available}"
         )
     aligned.xyz[:, atom_indices, :] -= aligned.xyz[:, atom_indices, :].mean(axis=(0, 1), keepdims=True)
     return aligned
@@ -152,23 +150,19 @@ def align_trajectory(
 def image_molecules(traj: md.Trajectory) -> md.Trajectory:
     """Attempt to image molecules so they are whole across periodic boundaries.
 
-    Falls back to returning the original trajectory if mdtraj raises
-    (e.g. for non-orthogonal boxes without an anchor molecule).
+    Falls back to returning the original trajectory if mdtraj raises (e.g. for
+    non-orthogonal boxes without an anchor molecule).
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.
+    Args:
+        traj: Input trajectory.
 
-    Returns
-    -------
-    md.Trajectory
-        Imaged trajectory (or the original if imaging is unsupported).
+    Returns:
+        Imaged trajectory, or the original if imaging is unsupported.
     """
     try:
         return traj.image_molecules()
-    except Exception:  # noqa: BLE001 — mdtraj raises a variety of exceptions here.
-        # Be explicit about the fallback.
+    except Exception:  # noqa: BLE001
+        # mdtraj raises a variety of exceptions here.
         return traj
 
 
@@ -177,16 +171,14 @@ def save_aligned_files(
     structure_path: str,
     trajectory_path: str,
 ) -> None:
-    """Save aligned topology and trajectory for Molstar (or any other viewer).
+    """Save aligned topology and trajectory for Molstar or any other viewer.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Aligned trajectory.
-    structure_path : str
-        Path for the topology file, e.g. ``analysis_output/protein-aligned.gro``.
-    trajectory_path : str
-        Path for the trajectory file, e.g. ``analysis_output/protein-aligned.xtc``.
+    Args:
+        traj: Aligned trajectory.
+        structure_path: Path for the topology file, e.g.
+            ``analysis_output/protein-aligned.gro``.
+        trajectory_path: Path for the trajectory file, e.g.
+            ``analysis_output/protein-aligned.xtc``.
     """
     _ensure_dir(structure_path)
     _ensure_dir(trajectory_path)
@@ -198,14 +190,22 @@ def save_aligned_files(
 # Geometric measurements
 # --------------------------------------------------------------------------- #
 
+
 def _resolve_atom_indices(
     traj: md.Trajectory,
     selections: List[str],
 ) -> np.ndarray:
     """Resolve a list of MDTraj DSL selections to atom indices.
 
-    Raises ``ValueError`` if any selection is empty so the user gets a clear
-    message at the point of definition.
+    Args:
+        traj: Input trajectory.
+        selections: List of MDTraj DSL selection strings.
+
+    Returns:
+        Array of atom index arrays.
+
+    Raises:
+        ValueError: If any selection is empty.
     """
     indices = np.array([traj.topology.select(sel) for sel in selections])
     for sel, idx in zip(selections, indices):
@@ -228,24 +228,23 @@ def measure_distance(
     Each selection is reduced to its geometric centre at every frame, then the
     Euclidean distance between the two centres is returned.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.
-    selection_pairs : list of (str, str)
-        List of ``(selection_a, selection_b)`` tuples.  Each selection is an
-        MDTraj DSL string (e.g. ``"residue 10 and name CA"``).
-    timestep_ps : float, optional
-        Timestep in ps.  Defaults to ``traj.timestep``.
+    Args:
+        traj: Input trajectory.
+        selection_pairs: List of ``(selection_a, selection_b)`` tuples. Each
+            selection is an MDTraj DSL string, e.g.
+            ``"residue 10 and name CA"``.
+        timestep_ps: Timestep in ps. Defaults to ``traj.timestep``.
 
-    Returns
-    -------
-    time_ns : np.ndarray
-        1-D array of time values in nanoseconds.
-    distances : np.ndarray
-        2-D array of shape ``(n_frames, n_pairs)`` in nanometres.
-    labels : list of str
-        Human-readable labels for each pair.
+    Returns:
+        A 3-tuple of ``(time_ns, distances, labels)``.
+
+        - ``time_ns``: 1-D array of time values in nanoseconds.
+        - ``distances``: 2-D array of shape ``(n_frames, n_pairs)`` in nm.
+        - ``labels``: Human-readable label for each pair.
+
+    Raises:
+        ValueError: If a pair contains an empty selection, or if no pairs are
+            provided.
     """
     labels: List[str] = []
     dists_list: List[np.ndarray] = []
@@ -255,8 +254,8 @@ def measure_distance(
         if len(idx_a) == 0 or len(idx_b) == 0:
             available = sorted({r.name for r in traj.topology.residues})
             raise ValueError(
-                f"Distance pair ({sel_a!r}, {sel_b!r}) contains an empty selection. "
-                f"Available residues: {available}"
+                f"Distance pair ({sel_a!r}, {sel_b!r}) contains an empty "
+                f"selection. Available residues: {available}"
             )
         labels.append(f"{sel_a} — {sel_b}")
         # Centre-of-geometry for each group at every frame.
@@ -280,24 +279,22 @@ def measure_angle(
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     """Measure angles (in degrees) between three atom selections.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.
-    selection_triples : list of (str, str, str)
-        Each tuple defines ``(sel_a, sel_b, sel_c)`` for the angle
-        ``a–b–c``.
-    timestep_ps : float, optional
-        Timestep in ps.  Defaults to ``traj.timestep``.
+    Args:
+        traj: Input trajectory.
+        selection_triples: Each tuple defines ``(sel_a, sel_b, sel_c)`` for
+            the angle ``a–b–c``.
+        timestep_ps: Timestep in ps. Defaults to ``traj.timestep``.
 
-    Returns
-    -------
-    time_ns : np.ndarray
-        1-D array of time values in nanoseconds.
-    angles : np.ndarray
-        2-D array of shape ``(n_frames, n_angles)`` in degrees.
-    labels : list of str
-        Human-readable labels.
+    Returns:
+        A 3-tuple of ``(time_ns, angles, labels)``.
+
+        - ``time_ns``: 1-D array of time values in nanoseconds.
+        - ``angles``: 2-D array of shape ``(n_frames, n_angles)`` in degrees.
+        - ``labels``: Human-readable label for each angle.
+
+    Raises:
+        ValueError: If a triple contains an empty selection, or if no triples
+            are provided.
     """
     labels: List[str] = []
     triples: List[np.ndarray] = []
@@ -323,24 +320,23 @@ def measure_dihedral(
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     """Measure dihedral angles (in degrees) between four atom selections.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.
-    selection_quads : list of (str, str, str, str)
-        Each tuple defines ``(sel_a, sel_b, sel_c, sel_d)`` for the dihedral
-        ``a–b–c–d``.
-    timestep_ps : float, optional
-        Timestep in ps.  Defaults to ``traj.timestep``.
+    Args:
+        traj: Input trajectory.
+        selection_quads: Each tuple defines ``(sel_a, sel_b, sel_c, sel_d)``
+            for the dihedral ``a–b–c–d``.
+        timestep_ps: Timestep in ps. Defaults to ``traj.timestep``.
 
-    Returns
-    -------
-    time_ns : np.ndarray
-        1-D array of time values in nanoseconds.
-    dihedrals : np.ndarray
-        2-D array of shape ``(n_frames, n_dihedrals)`` in degrees.
-    labels : list of str
-        Human-readable labels.
+    Returns:
+        A 3-tuple of ``(time_ns, dihedrals, labels)``.
+
+        - ``time_ns``: 1-D array of time values in nanoseconds.
+        - ``dihedrals``: 2-D array of shape
+          ``(n_frames, n_dihedrals)`` in degrees.
+        - ``labels``: Human-readable label for each dihedral.
+
+    Raises:
+        ValueError: If a quad contains an empty selection, or if no quads are
+            provided.
     """
     labels: List[str] = []
     quads: List[np.ndarray] = []
@@ -363,36 +359,30 @@ def measure_dihedral(
 # Structure quality
 # --------------------------------------------------------------------------- #
 
+
 def dssp_timeline(
     traj: md.Trajectory,
     outpath: Optional[str] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Run DSSP secondary-structure assignment and optionally plot a heat-map.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.  Must contain protein residues.
-    outpath : str, optional
-        If provided, a publication-ready heat-map is saved to this path.
+    Args:
+        traj: Input trajectory. Must contain protein residues.
+        outpath: If provided, a publication-ready heat-map is saved to this
+            path.
 
-    Returns
-    -------
-    time_ns : np.ndarray
-        1-D array of time values in nanoseconds.
-    residues : np.ndarray
-        1-D array of residue indices (0-based).
-    ss_codes : np.ndarray
-        2-D integer array of shape ``(n_frames, n_residues)`` encoding
-        secondary structure.  The integer mapping is:
+    Returns:
+        A 3-tuple of ``(time_ns, residues, ss_codes)``.
 
-        ===== ===================
-        Code  Structure
-        ===== ===================
-        0     Helix (H, G, I)
-        1     Sheet (E, B)
-        2     Coil / other (C, S, T, ' ')
-        ===== ===================
+        - ``time_ns``: 1-D array of time values in nanoseconds.
+        - ``residues``: 1-D array of residue indices (0-based).
+        - ``ss_codes``: 2-D integer array of shape
+          ``(n_frames, n_residues)`` encoding secondary structure. The
+          integer mapping is:
+
+          - ``0`` — Helix (H, G, I)
+          - ``1`` — Sheet (E, B)
+          - ``2`` — Coil / other (C, S, T, ' ')
     """
     dssp = md.compute_dssp(traj, simplified=True)  # (n_frames, n_residues)
 
@@ -437,24 +427,19 @@ def ramachandran(
     residue_indices: Optional[List[int]] = None,
     outpath: Optional[str] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Extract φ / ψ dihedrals and optionally plot a Ramachandran map.
+    """Extract phi / psi dihedrals and optionally plot a Ramachandran map.
 
-    Parameters
-    ----------
-    traj : md.Trajectory
-        Input trajectory.
-    residue_indices : list of int, optional
-        Restrict analysis to these 0-based residue indices.  If ``None``,
-        all protein residues are used.
-    outpath : str, optional
-        If provided, a publication-ready 2-D histogram is saved.
+    Args:
+        traj: Input trajectory.
+        residue_indices: Restrict analysis to these 0-based residue indices.
+            If ``None``, all protein residues are used.
+        outpath: If provided, a publication-ready 2-D histogram is saved.
 
-    Returns
-    -------
-    phi : np.ndarray
-        Flattened array of φ angles in degrees.
-    psi : np.ndarray
-        Flattened array of ψ angles in degrees.
+    Returns:
+        A 2-tuple of ``(phi, psi)``.
+
+        - ``phi``: Flattened array of phi angles in degrees.
+        - ``psi``: Flattened array of psi angles in degrees.
     """
     # mdtraj returns (n_frames, n_residues - 1) in radians.
     phi_rad, psi_rad = md.compute_phi(traj), md.compute_psi(traj)
@@ -463,8 +448,8 @@ def ramachandran(
     psi = np.degrees(psi_rad[1].flatten())
 
     if residue_indices is not None:
-        # phi/psi arrays have shape (n_frames, n_dihedrals) where n_dihedrals = n_residues - 1.
-        # We need to map residue_indices to dihedral indices carefully.
+        # phi/psi arrays have shape (n_frames, n_dihedrals)
+        # where n_dihedrals = n_residues - 1.
         # mdtraj.compute_phi returns dihedrals for residues 1..n-1.
         # A residue index r corresponds to phi[r-1] and psi[r-1].
         valid = [r for r in residue_indices if 1 <= r < traj.n_residues]
@@ -479,7 +464,9 @@ def ramachandran(
         _ensure_dir(outpath)
 
         fig, ax = plt.subplots(figsize=(5.5, 5))
-        hist, xedges, yedges = np.histogram2d(phi, psi, bins=180, range=[[-180, 180], [-180, 180]])
+        hist, xedges, yedges = np.histogram2d(
+            phi, psi, bins=180, range=[[-180, 180], [-180, 180]]
+        )
         # Omit the extreme singleton bins that dominate the colour scale.
         vmax = np.percentile(hist, 99)
         im = ax.imshow(
