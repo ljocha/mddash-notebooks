@@ -5,7 +5,7 @@ No hidden global state. All functions are deterministic: same inputs → same ou
 Designed to be imported from a Jupyter notebook with zero side effects.
 """
 
-import os
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import mdtraj as md
@@ -47,9 +47,7 @@ def _publication_style():
 
 def _ensure_dir(path: str) -> None:
     """Create parent directories for *path* if they do not exist."""
-    directory = os.path.dirname(path)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
 
 
 def _resolve_time_axis(traj: md.Trajectory, timestep_ps: Optional[float] = None) -> np.ndarray:
