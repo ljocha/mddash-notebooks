@@ -5,13 +5,14 @@ No hidden global state. All functions are deterministic: same inputs -> same out
 Designed to be imported from a Jupyter notebook with zero side effects.
 """
 
+import warnings
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 import mdtraj as md
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.colors import to_rgba
+from matplotlib.colors import ListedColormap, to_rgba
 
 # Colour-blind-safe palette for publication-ready figures.
 _COLOUR_CYCLE = [
@@ -24,24 +25,6 @@ _COLOUR_CYCLE = [
     to_rgba("#FBAFE4"),  # pink
     to_rgba("#949494"),  # grey
 ]
-
-
-def _publication_style() -> None:
-    """Apply tight, publication-ready Matplotlib defaults."""
-    plt.rcParams.update({
-        "figure.dpi": 150,
-        "savefig.dpi": 300,
-        "savefig.bbox": "tight",
-        "axes.linewidth": 0.8,
-        "xtick.direction": "in",
-        "ytick.direction": "in",
-        "xtick.major.width": 0.8,
-        "ytick.major.width": 0.8,
-        "font.size": 10,
-        "axes.labelsize": 11,
-        "axes.titlesize": 12,
-        "legend.fontsize": 9,
-    })
 
 
 def _ensure_dir(path: str) -> None:
@@ -90,7 +73,6 @@ def plot_energy(
             ``analysis_output/temperature.png``.
         xlabel: X-axis label. Defaults to ``"Time (ns)"``.
     """
-    _publication_style()
     _ensure_dir(outpath)
 
     fig, ax = plt.subplots(figsize=(6, 3.5))
@@ -163,8 +145,11 @@ def image_molecules(traj: md.Trajectory) -> md.Trajectory:
     """
     try:
         return traj.image_molecules()
-    except Exception:
-        # mdtraj raises a variety of exceptions here.
+    except (RuntimeError, ValueError) as exc:
+        warnings.warn(
+            f"PBC imaging failed — molecules may be split across box boundaries. Reason: {exc}",
+            UserWarning,
+        )
         return traj
 
 
@@ -474,8 +459,13 @@ def dssp_timeline(
     residues = np.arange(n_residues)
 
     if outpath is not None:
-        _publication_style()
         _ensure_dir(outpath)
+
+        dssp_cmap = ListedColormap([
+            to_rgba("#0173B2"),  # blue   — Helix
+            to_rgba("#DE8F05"),  # orange — Sheet
+            to_rgba("#949494"),  # grey   — Coil/other
+        ])
 
         fig, ax = plt.subplots(figsize=(8, 4))
         im = ax.imshow(
@@ -483,7 +473,7 @@ def dssp_timeline(
             aspect="auto",
             origin="lower",
             extent=[time_ns[0], time_ns[-1], 0, n_residues],
-            cmap="viridis",
+            cmap=dssp_cmap,
             vmin=0,
             vmax=2,
             interpolation="nearest",
@@ -540,7 +530,6 @@ def ramachandran(
         psi = np.degrees(psi)
 
     if outpath is not None:
-        _publication_style()
         _ensure_dir(outpath)
 
         fig, ax = plt.subplots(figsize=(5.5, 5))
