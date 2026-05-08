@@ -163,9 +163,84 @@ def image_molecules(traj: md.Trajectory) -> md.Trajectory:
     """
     try:
         return traj.image_molecules()
-    except Exception:  # noqa: BLE001
+    except Exception:
         # mdtraj raises a variety of exceptions here.
         return traj
+
+
+def gro_atom_count(path: str | Path) -> int:
+    """Read the atom count from a GROMACS ``.gro`` structure file."""
+    gro_path = Path(path)
+    with gro_path.open() as handle:
+        handle.readline()
+        atom_count_line = handle.readline()
+
+    try:
+        return int(atom_count_line.strip())
+    except ValueError as exc:
+        raise ValueError(f"Could not read atom count from {gro_path}") from exc
+
+
+def xtc_atom_count(path: str | Path) -> int:
+    """Read the atom count from the first frame of an XTC trajectory."""
+    xtc_path = Path(path)
+    with md.formats.XTCTrajectoryFile(str(xtc_path)) as xtc_file:
+        xyz = xtc_file.read(n_frames=1)[0]
+
+    if xyz.shape[0] == 0:
+        raise ValueError(f"No frames found in {xtc_path}")
+    return int(xyz.shape[1])
+
+
+def topology_atom_count(path: str | Path) -> int:
+    """Return the atom count for a topology/structure file MDTraj can load."""
+    topology_path = Path(path)
+    if topology_path.suffix.lower() == ".gro":
+        return gro_atom_count(topology_path)
+    return int(md.load(str(topology_path)).n_atoms)
+
+
+def diagnose_trajectory_inputs(
+    trajectory_path: str | Path,
+    topology_path: str | Path,
+) -> dict[str, int | str]:
+    """Collect atom-count diagnostics before loading a trajectory/topology pair."""
+    trajectory = Path(trajectory_path)
+    topology = Path(topology_path)
+
+    if not trajectory.exists():
+        raise FileNotFoundError(f"Trajectory file not found: {trajectory}")
+    if not topology.exists():
+        raise FileNotFoundError(f"Topology file not found: {topology}")
+
+    return {
+        "trajectory_path": str(trajectory),
+        "topology_path": str(topology),
+        "trajectory_atoms": xtc_atom_count(trajectory),
+        "topology_atoms": topology_atom_count(topology),
+    }
+
+
+def load_trajectory_checked(
+    trajectory_path: str | Path,
+    topology_path: str | Path,
+) -> md.Trajectory:
+    """Load a trajectory after verifying trajectory/topology atom-count parity."""
+    info = diagnose_trajectory_inputs(trajectory_path, topology_path)
+    trajectory_atoms = info["trajectory_atoms"]
+    topology_atoms = info["topology_atoms"]
+
+    if trajectory_atoms != topology_atoms:
+        raise ValueError(
+            "Trajectory/topology atom-count mismatch: "
+            f"{info['trajectory_path']} has {trajectory_atoms} atoms, but "
+            f"{info['topology_path']} has {topology_atoms} atoms. "
+            "Use a topology/structure file for the same atom group written to the trajectory. "
+            "For the setup notebook's default `compressed-x-grps = Protein`, use "
+            "`protein-vis.gro` rather than the full-system `protein.gro`."
+        )
+
+    return md.load(str(trajectory_path), top=str(topology_path))
 
 
 def save_aligned_files(
