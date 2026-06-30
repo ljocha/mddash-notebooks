@@ -109,6 +109,7 @@ def pmemd(
     c: str | None = None,
     r: str | None = None,
     x: str | None = None,
+    inf: str | None = None,
     ref: str | None = None,
     O: bool = False,
 ) -> None:
@@ -128,6 +129,7 @@ def pmemd(
         c: Input coordinates (``.rst7`` / ``.ncrst``).
         r: Restart file output.
         x: Trajectory file output.
+        inf: MD info file output (``.mdinfo``).
         ref: Reference structure for restraints.
         O: Overwrite output files.
     """
@@ -136,7 +138,7 @@ def pmemd(
         checked_engines.append("pmemd.cuda")
         if shutil.which("pmemd.cuda"):
             print("amber_wrapper: using pmemd.cuda (GPU detected)")
-            return _run("pmemd.cuda", i=i, o=o, p=p, c=c, r=r, x=x, ref=ref, O=O)
+            return _run("pmemd.cuda", i=i, o=o, p=p, c=c, r=r, x=x, inf=inf, ref=ref, O=O)
 
     checked_engines.append("pmemd")
     if shutil.which("pmemd"):
@@ -144,7 +146,7 @@ def pmemd(
             print("amber_wrapper: pmemd.cuda not found; falling back to serial pmemd")
         else:
             print("amber_wrapper: using serial pmemd")
-        return _run("pmemd", i=i, o=o, p=p, c=c, r=r, x=x, ref=ref, O=O)
+        return _run("pmemd", i=i, o=o, p=p, c=c, r=r, x=x, inf=inf, ref=ref, O=O)
 
     checked = ", ".join(checked_engines)
     raise RuntimeError(f"No usable pmemd engine found in PATH; checked: {checked}")
@@ -157,6 +159,7 @@ def sander(
     c: str | None = None,
     r: str | None = None,
     x: str | None = None,
+    inf: str | None = None,
     ref: str | None = None,
     O: bool = False,
 ) -> None:
@@ -165,7 +168,7 @@ def sander(
 
     Uses OpenMP threading automatically (respects ``OMP_NUM_THREADS``).
     """
-    return _run("sander", i=i, o=o, p=p, c=c, r=r, x=x, ref=ref, O=O)
+    return _run("sander", i=i, o=o, p=p, c=c, r=r, x=x, inf=inf, ref=ref, O=O)
 
 
 def cpptraj(

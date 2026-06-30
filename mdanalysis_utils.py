@@ -535,7 +535,8 @@ def ramachandran(
         fig, ax = plt.subplots(figsize=(5.5, 5))
         hist, xedges, yedges = np.histogram2d(phi, psi, bins=180, range=[[-180, 180], [-180, 180]])
         # Omit the extreme singleton bins that dominate the colour scale.
-        vmax = np.percentile(hist, 99)
+        # Floor at 1 so sparse data (short trajectories) doesn't render blank.
+        vmax = max(1, np.percentile(hist, 99))
         im = ax.imshow(
             hist.T,
             origin="lower",
