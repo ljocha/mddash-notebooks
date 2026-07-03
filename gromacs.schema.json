@@ -7,7 +7,7 @@
   "properties": {
     "$schema": { "type": "string" },
     "name": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" },
-    "engine": { "const": "gromacs" },
+    "engine": { "const": "GMX" },
     "files": {
       "type": "object",
       "required": ["topology", "structure", "trajectory"],
