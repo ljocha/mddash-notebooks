@@ -7,7 +7,7 @@
   "properties": {
     "$schema": { "type": "string" },
     "name": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" },
-    "engine": { "const": "amber" },
+    "engine": { "const": "AMBER" },
     "files": {
       "type": "object",
       "required": ["topology", "coordinates", "control", "trajectory"],
