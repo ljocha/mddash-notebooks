@@ -10,12 +10,13 @@
     "engine": { "const": "AMBER" },
     "files": {
       "type": "object",
-      "required": ["topology", "coordinates", "control", "trajectory"],
+      "required": ["topology", "coordinates", "control", "reference_structure", "trajectory"],
       "additionalProperties": false,
       "properties": {
         "topology": { "$ref": "#/$defs/relpath" },
         "coordinates": { "$ref": "#/$defs/relpath" },
         "control": { "$ref": "#/$defs/relpath" },
+        "reference_structure": { "$ref": "#/$defs/relpath" },
         "trajectory": { "$ref": "#/$defs/relpath" }
       }
     },
@@ -24,7 +25,7 @@
   "$defs": {
     "relpath": {
       "type": "string",
-      "description": "Path relative to the directory containing this manifest file.",
+      "description": "Path relative to the experiment directory.",
       "pattern": "^[A-Za-z0-9_./-]+$",
       "not": { "pattern": "^/|\\.\\.|//" }
     }
