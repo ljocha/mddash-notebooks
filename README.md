@@ -21,5 +21,3 @@ Every module directory is copied as-is into an experiment workspace.
 2. Place the notebook(s), helper scripts, and schema files inside it.
 3. Make sure everything is self-contained — bare imports and `$schema` relative paths must work from the module directory alone.
 4. Register the new module in MDDash's bundled `notebook-modules.json` catalog.
-
-External repositories (e.g. Binder-compatible repos) can also be registered with `"path": "."` and a `"repository"` URL, in which case the full repository is cloned as-is.
